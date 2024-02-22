@@ -1,2 +1,3 @@
-workspace = { members = [ "ioc", "pyreccaster","reccaster", "wire"] }
+[workspace]
+members = [ "ioc", "pyreccaster","reccaster", "wire"]
 resolver = "2"
