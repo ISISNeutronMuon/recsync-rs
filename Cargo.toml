@@ -1,0 +1,2 @@
+workspace = { members = [ "ioc", "pyreccaster","reccaster", "wire"] }
+resolver = "2"
