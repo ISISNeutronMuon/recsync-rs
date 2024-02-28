@@ -1,12 +1,12 @@
 use bytes::{Buf, BufMut, BytesMut};
-use std::{io::{self}, net::Ipv4Addr};
+use std::{io, net::Ipv4Addr};
 use tokio_util::codec::{Decoder, Encoder};
 
 /// UDP broadcast port
 pub const SERVER_ANNOUNCEMENT_UDP_PORT: u16 = 5049;
 
-/// Announcement Message ID Magic number (ascii 'RC')
-pub const ANNOUNCEMENT_MSG_ID: u16 = 0x5243;
+/// Message ID Magic number (ascii 'RC')
+pub const MSG_ID: u16 = 0x5243;
 
 /// UDP Announcement message strcut
 #[derive(Debug)]
@@ -18,6 +18,7 @@ pub struct Announcement {
 }
 
 /// Messages ID
+#[derive(Copy, Clone)]
 #[repr(u16)]
 pub enum MessageID {
     ServerGreet = 0x8001,
@@ -104,6 +105,22 @@ pub enum Message {
     AddInfo(AddInfo),
 }
 
+impl From<u16> for MessageID {
+    fn from(value: u16) -> Self {
+        match value {
+            0x8001 => MessageID::ServerGreet,
+            0x0001 => MessageID::ClientGreet,
+            0x8002 => MessageID::Ping,
+            0x0002 => MessageID::Pong,
+            0x0003 => MessageID::AddRecord,
+            0x0004 => MessageID::DelRecord,
+            0x0005 => MessageID::UploadDone,
+            0x0006 => MessageID::AddInfo,
+            _ => unimplemented!("Unknown Message ID")
+        }
+    }
+}
+
 /// Encoders and Decoders for Messages
 pub struct MessageCodec;
 
@@ -113,7 +130,7 @@ impl Encoder<Message> for MessageCodec {
     fn encode(&mut self, msg: Message, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match msg {
             Message::ServerGreet(_) => {
-                dst.put_u16(0x8001);
+                dst.put_u16(MessageID::ServerGreet as u16);
                 dst.put_u32(1); // Length is 1 for Server Greet
                 dst.put_u8(0); // Placeholder
                 Ok(())
@@ -138,6 +155,12 @@ impl Decoder for MessageCodec {
         let id = src.get_u16();
         let msg_id = src.get_u16();
         let len = src.get_u32() as usize;
+        
+        // Checking if the ID is 'RC'
+        if id != MSG_ID {
+            return Ok(None);
+        }
+
 
         if src.len() < len {
             // Not enough data to read the body
@@ -145,14 +168,19 @@ impl Decoder for MessageCodec {
         }
 
         // Match based on `msg_id` and parse accordingly
-        match msg_id {
-            SERVER_GREET_ID => {
+        match msg_id.into() {
+            MessageID::ServerGreet => {
                 // Parse Server Greet (example)
                 let _placeholder = src.get_u8();
                 Ok(Some(Message::ServerGreet(ServerGreet)))
             }
-            // ... handle other message types similarly
-            _ => unimplemented!(),
+            MessageID::ClientGreet => todo!(),
+            MessageID::Ping => todo!(),
+            MessageID::Pong => todo!(),
+            MessageID::AddRecord => todo!(),
+            MessageID::DelRecord => todo!(),
+            MessageID::UploadDone => todo!(),
+            MessageID::AddInfo => todo!(),
         }
     }
 }
