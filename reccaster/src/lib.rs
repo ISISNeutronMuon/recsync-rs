@@ -1,7 +1,8 @@
-
 use std::{io, net::{SocketAddr, IpAddr, Ipv4Addr}};
-use tokio::{net::UdpSocket, io::Interest};
-use wire::{Announcement, ANNOUNCEMENT_MSG_ID}; 
+use tokio::{net::{UdpSocket, TcpStream}, io::Interest}; 
+use tokio_util::codec::Framed;
+use wire::{Announcement, MSG_ID, MessageCodec, Message};
+use tokio_stream::StreamExt;
 
 pub struct Reccaster {
     udpsock: UdpSocket,
@@ -23,28 +24,36 @@ impl Reccaster {
                 match self.udpsock.try_recv_from(&mut self.buf) {
                     Ok((len, addr)) => {
                         if len >= 16 {
-                            let msg = Self::parse_announcement_message(&self.buf[..len], addr);
-                            println!("Received announcement message from {:?}\n{:?}", addr, msg);
+                            let msg = Self::parse_announcement_message(&self.buf[..len], addr).unwrap();
+                            println!("Received announcement message: {:?}:{:?} with key:{:?} from: {:?}", msg.server_addr, msg.server_port, msg.server_key, addr);
+                            Self::handle_handshake(msg).await;
                         }
-
                     },
-                    Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => { println!("would block here"); continue; },
+                    Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => { continue; },
                     Err(err) => { println!("{:?}", err) }
                 };
             }
         }
     }
 
+    async fn handle_handshake(msg: Announcement) {
+        let addr = msg.server_addr;
+        let stream = TcpStream::connect(addr.to_string()).await.unwrap();
+        let codec = MessageCodec;
+        let mut framed = Framed::new(stream, codec);
+        while let Some(msg) = framed.next().await {
+            
+        }
+    }
+
     fn parse_announcement_message(data: &[u8], src_addr: SocketAddr) -> Result<Announcement, &'static str> {
-        // @TODO check for zero flag in announcement message
-        
         let id = u16::from_be_bytes([data[0], data[1]]);
         // Checking if the ID is 'RC'
-        if id != ANNOUNCEMENT_MSG_ID {             
+        if id != MSG_ID {             
             return Err("Invalid ID");
         }
 
-        let version = data[0];
+        let version = data[2];
         if version != 0 {
             return Err("Invalid version");
         }
