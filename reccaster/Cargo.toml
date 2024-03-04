@@ -10,5 +10,5 @@ tokio = { version = "1.36", features = ["full"] }
 tokio-util = { version = "*", features = ["full"] }
 tokio-stream = "0.1"
 bytes = "1"
-
+futures = "*"
 wire = { path = "../wire" }

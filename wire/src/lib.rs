@@ -121,6 +121,21 @@ impl From<u16> for MessageID {
     }
 }
 
+impl Message {
+    fn id(&self) -> MessageID {
+        match self {
+            Message::ServerGreet(_) => MessageID::ServerGreet,
+            Message::Ping(_) => MessageID::Ping,
+            Message::ClientGreet(_) => MessageID::ClientGreet,
+            Message::Pong(_) => MessageID::Pong,
+            Message::AddRecord(_) => MessageID::AddRecord,
+            Message::DelRecord(_) => MessageID::DelRecord,
+            Message::UploadDone(_) => MessageID::UploadDone,
+            Message::AddInfo(_) => MessageID::AddInfo,
+        }
+    }
+}
+
 /// Encoders and Decoders for Messages
 pub struct MessageCodec;
 
@@ -128,15 +143,38 @@ impl Encoder<Message> for MessageCodec {
     type Error = io::Error;
 
     fn encode(&mut self, msg: Message, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        let mut header = MessageHeader { id: MSG_ID, msg_id: msg.id() as u16, len: 0};
         match msg {
             Message::ServerGreet(_) => {
+                header.len = 1; 
+                dst.put_u16(MSG_ID);
                 dst.put_u16(MessageID::ServerGreet as u16);
-                dst.put_u32(1); // Length is 1 for Server Greet
+                dst.put_u32(header.len); // Length is 1 for Server Greet
                 dst.put_u8(0); // Placeholder
                 Ok(())
             },
-            // ... handle other message types similarly
-            _ => unimplemented!(),
+            Message::Ping(_) => todo!(),
+            Message::ClientGreet(msg) => {
+                header.len = 8;
+                dst.put_u16(MSG_ID);
+                dst.put_u16(MessageID::ClientGreet as u16);
+                dst.put_u32(header.len);
+                dst.put_u32(0); // Placeholder
+                dst.put_u32(msg.serv_key);
+                Ok(())
+            },
+            Message::Pong(msg) => {
+                header.len = 4;
+                dst.put_u16(MSG_ID);
+                dst.put_u16(MessageID::Pong as u16);
+                dst.put_u32(header.len);
+                dst.put_u32(msg.nonce);
+                Ok(())
+            },
+            Message::AddRecord(_) => todo!(),
+            Message::DelRecord(_) => todo!(),
+            Message::UploadDone(_) => todo!(),
+            Message::AddInfo(_) => todo!(),
         }
     }
 }
@@ -170,12 +208,14 @@ impl Decoder for MessageCodec {
         // Match based on `msg_id` and parse accordingly
         match msg_id.into() {
             MessageID::ServerGreet => {
-                // Parse Server Greet (example)
                 let _placeholder = src.get_u8();
                 Ok(Some(Message::ServerGreet(ServerGreet)))
             }
             MessageID::ClientGreet => todo!(),
-            MessageID::Ping => todo!(),
+            MessageID::Ping => {
+                let nonce = src.get_u32();
+                Ok(Some(Message::Ping(Ping { nonce })))
+            },
             MessageID::Pong => todo!(),
             MessageID::AddRecord => todo!(),
             MessageID::DelRecord => todo!(),

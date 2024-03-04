@@ -455,6 +455,7 @@ name = "reccaster"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "futures",
  "tokio",
  "tokio-stream",
  "tokio-util",
