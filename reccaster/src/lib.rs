@@ -26,26 +26,6 @@ impl Reccaster {
         Self { udpsock: sock, framed: None, buf: [0; 1024], pvs: Vec::new(), state: CasterState::Announcement } 
     }
 
-    //pub async fn run(&mut self) {
-    //    loop {
-    //        let ready = self.udpsock.ready(Interest::READABLE).await.unwrap();
-
-    //        if ready.is_readable() {
-    //            match self.udpsock.try_recv_from(&mut self.buf) {
-    //                Ok((len, addr)) => {
-    //                    if len >= 16 {
-    //                        let msg = Self::parse_announcement_message(&self.buf[..len], addr).unwrap();
-    //                        println!("Received announcement message: {:?}:{:?} with key:{:?} from: {:?}", msg.server_addr, msg.server_port, msg.server_key, addr);
-    //                        Self::handle_handshake(msg).await;
-    //                    }
-    //                },
-    //                Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => { continue; },
-    //                Err(err) => { println!("{:?}", err) }
-    //            };
-    //        }
-    //    }
-    //}
-    
     pub async fn run(&mut self) {
         loop {
             match self.state {
@@ -132,9 +112,7 @@ impl Reccaster {
                                         self.state = CasterState::Announcement;
                                         return;
                                     }
-                                    // If you want to stay in PingPong state, don't return here
                                 },
-                                // Transition to Announcement state on receiving a non-ping message
                                 _ => {
                                     self.state = CasterState::Announcement;
                                     return;
