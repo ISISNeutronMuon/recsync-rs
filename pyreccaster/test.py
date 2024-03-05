@@ -14,7 +14,7 @@ async def main():
         op.done()
 
     with Server(providers=[{"DEV:P4P:VAL": pv}]):
-        py_reccaster = await PyReccaster.init()
+        py_reccaster = await PyReccaster.setup()
         await py_reccaster.run()
 
 

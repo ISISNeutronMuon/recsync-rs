@@ -173,7 +173,14 @@ impl Encoder<Message> for MessageCodec {
             },
             Message::AddRecord(_) => todo!(),
             Message::DelRecord(_) => todo!(),
-            Message::UploadDone(_) => todo!(),
+            Message::UploadDone(_) => {
+                header.len = 4;
+                dst.put_u16(MSG_ID);
+                dst.put_u16(MessageID::UploadDone as u16);
+                dst.put_u32(header.len);
+                dst.put_u32(0);
+                Ok(())
+            },
             Message::AddInfo(_) => todo!(),
         }
     }
