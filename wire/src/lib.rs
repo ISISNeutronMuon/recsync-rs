@@ -153,7 +153,6 @@ impl Encoder<Message> for MessageCodec {
                 dst.put_u8(0); // Placeholder
                 Ok(())
             },
-            Message::Ping(_) => todo!(),
             Message::ClientGreet(msg) => {
                 header.len = 8;
                 dst.put_u16(MSG_ID);
@@ -173,6 +172,7 @@ impl Encoder<Message> for MessageCodec {
             },
             Message::AddRecord(_) => todo!(),
             Message::DelRecord(_) => todo!(),
+            Message::AddInfo(_) => todo!(),
             Message::UploadDone(_) => {
                 header.len = 4;
                 dst.put_u16(MSG_ID);
@@ -181,7 +181,7 @@ impl Encoder<Message> for MessageCodec {
                 dst.put_u32(0);
                 Ok(())
             },
-            Message::AddInfo(_) => todo!(),
+            Message::Ping(_) => unimplemented!("Recceiver related messages are not implemented yet."),
         }
     }
 }
@@ -218,26 +218,19 @@ impl Decoder for MessageCodec {
                 let _placeholder = src.get_u8();
                 Ok(Some(Message::ServerGreet(ServerGreet)))
             }
-            MessageID::ClientGreet => todo!(),
             MessageID::Ping => {
                 let nonce = src.get_u32();
                 Ok(Some(Message::Ping(Ping { nonce })))
             },
-            MessageID::Pong => todo!(),
-            MessageID::AddRecord => todo!(),
-            MessageID::DelRecord => todo!(),
-            MessageID::UploadDone => todo!(),
-            MessageID::AddInfo => todo!(),
+            MessageID::ClientGreet => unimplemented!("Recceiver related messages are not implemented yet."),
+            MessageID::Pong => unimplemented!("Recceiver related messages are not implemented yet."),
+            MessageID::AddRecord => unimplemented!("Recceiver related messages are not implemented yet."),
+            MessageID::DelRecord => unimplemented!("Recceiver related messages are not implemented yet."),
+            MessageID::UploadDone => unimplemented!("Recceiver related messages are not implemented yet."),
+            MessageID::AddInfo => unimplemented!("Recceiver related messages are not implemented yet."),
         }
     }
 }
-
-//@TODO You would continue to implement the `encode` and `decode` methods for each message type.
-//@TODO Make sure to handle buffer underflow (not enough data) and any potential parsing errors properly.
-
-//@TODO This is just the foundation for your protocol's codec. You will need to flesh out each message's
-//@TODO details according to your application's protocol specifications. The codec can then be integrated
-//@TODO with a Tokio-based TCP/UDP server to encode outgoing messages and decode incoming messages.
 
 //#[cfg(test)]
 //mod tests {
