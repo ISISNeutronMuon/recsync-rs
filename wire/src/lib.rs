@@ -170,7 +170,12 @@ impl Encoder<Message> for MessageCodec {
                 dst.put_u32(msg.nonce);
                 Ok(())
             },
-            Message::AddRecord(_) => todo!(),
+            Message::AddRecord(msg) => {
+                dst.put_u16(MSG_ID);
+                dst.put_u16(MessageID::AddRecord as u16);
+                dst.put_u32(header.len);
+                Ok(())
+            },
             Message::DelRecord(_) => todo!(),
             Message::AddInfo(_) => todo!(),
             Message::UploadDone(_) => {
@@ -205,7 +210,6 @@ impl Decoder for MessageCodec {
         if id != MSG_ID {
             return Ok(None);
         }
-
 
         if src.len() < len {
             // Not enough data to read the body
