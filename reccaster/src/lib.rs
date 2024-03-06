@@ -23,7 +23,8 @@ enum CasterState {
 impl Reccaster {
     pub async fn new() -> Reccaster{
         let sock = UdpSocket::bind(format!("0.0.0.0:{}", wire::SERVER_ANNOUNCEMENT_UDP_PORT)).await.unwrap();
-        Self { udpsock: sock, framed: None, buf: [0; 1024], pvs: Vec::new(), state: CasterState::Announcement } 
+        let pvs: Vec<String> = vec!["DEV:JEM".to_string()];
+        Self { udpsock: sock, framed: None, buf: [0; 1024], pvs, state: CasterState::Announcement } 
     }
 
     pub async fn run(&mut self) {
@@ -70,7 +71,7 @@ impl Reccaster {
                 while let Some(msg) = framed.next().await {
                     match msg.unwrap() {
                         Message::ServerGreet(_) => {
-                            println!("Server is Greeting 😄");
+                            println!("Server is Greeting 👋");
                             framed.send(Message::ClientGreet(wire::ClientGreet { serv_key: key })).await;
 
                             self.state = CasterState::Upload;
@@ -91,8 +92,16 @@ impl Reccaster {
         if let CasterState::Upload = &mut self.state {
             if let Some(framed) = &mut self.framed {
                 // @TODO upload data using add record
-                println!("Sending UploadDone Message 👌");
-                framed.send(Message::UploadDone(wire::UploadDone)).await;
+                println!("Sending AddRecord Message 📧");
+                let atype_add_record = 1;
+                let record_name = "DEV:JEM";
+                let record_type = "PERSON";
+                let msg = Message::AddRecord(wire::AddRecord { recid: 0 as u32, atype: atype_add_record, rtlen: record_type.len() as u8, rnlen: record_name.len() as u16, 
+                    rtype: record_type.to_string(), rname: record_name.to_string() });
+                framed.send(msg.clone()).await.unwrap();
+                println!("Sending AddRecord Message 📧.\n{:?}", msg);
+                framed.send(Message::UploadDone(wire::UploadDone)).await.unwrap();
+                println!("Sending UploadDone Message 🆗");
                 self.state = CasterState::PingPong;
             }
         }
@@ -102,7 +111,7 @@ impl Reccaster {
         println!("PINGPONG_STATE");
         if let CasterState::PingPong = &mut self.state {
             if let Some(framed) = &mut self.framed {
-                while let Some(msg_result) = framed.next().await {
+                while let Some(msg_result) = dbg!(framed.next().await) {
                     match msg_result {
                         Ok(msg) => {
                             match msg {
@@ -124,7 +133,9 @@ impl Reccaster {
                             return;
                         }
                     }
-                }
+                } 
+                self.state = CasterState::Announcement;
+                return;
             }
         }
     }
