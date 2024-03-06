@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut, BytesMut};
-use std::{io, net::Ipv4Addr};
+use std::{io, mem::{size_of, size_of_val}, net::Ipv4Addr};
 use tokio_util::codec::{Decoder, Encoder};
 
 /// UDP broadcast port
@@ -146,7 +146,7 @@ impl Encoder<Message> for MessageCodec {
         let mut header = MessageHeader { id: MSG_ID, msg_id: msg.id() as u16, len: 0};
         match msg {
             Message::ServerGreet(_) => {
-                header.len = 1; 
+                header.len = size_of::<u8>() as u32; 
                 dst.put_u16(MSG_ID);
                 dst.put_u16(MessageID::ServerGreet as u16);
                 dst.put_u32(header.len); // Length is 1 for Server Greet
@@ -154,7 +154,7 @@ impl Encoder<Message> for MessageCodec {
                 Ok(())
             },
             Message::ClientGreet(msg) => {
-                header.len = 8;
+                header.len = (size_of::<u32>() + size_of::<ClientGreet>())as u32;
                 dst.put_u16(MSG_ID);
                 dst.put_u16(MessageID::ClientGreet as u16);
                 dst.put_u32(header.len);
@@ -163,7 +163,7 @@ impl Encoder<Message> for MessageCodec {
                 Ok(())
             },
             Message::Pong(msg) => {
-                header.len = 4;
+                header.len = size_of::<Pong>() as u32;
                 dst.put_u16(MSG_ID);
                 dst.put_u16(MessageID::Pong as u16);
                 dst.put_u32(header.len);
@@ -171,15 +171,24 @@ impl Encoder<Message> for MessageCodec {
                 Ok(())
             },
             Message::AddRecord(msg) => {
+                header.len = (size_of::<AddRecord>() as u32) + (msg.rtlen as u32 + msg.rnlen as u32);
                 dst.put_u16(MSG_ID);
                 dst.put_u16(MessageID::AddRecord as u16);
                 dst.put_u32(header.len);
+                dst.put_u32(msg.recid);
+                dst.put_u8(msg.atype);
+                dst.put_u8(msg.rtlen);
+                dst.put_u16(msg.rnlen);
+                dst.put(msg.rtype.as_bytes());
+                dst.put(msg.rname.as_bytes());
                 Ok(())
             },
             Message::DelRecord(_) => todo!(),
-            Message::AddInfo(_) => todo!(),
+            Message::AddInfo(msg) => {
+                Ok(())
+            },
             Message::UploadDone(_) => {
-                header.len = 4;
+                header.len = size_of::<u32>() as u32;
                 dst.put_u16(MSG_ID);
                 dst.put_u16(MessageID::UploadDone as u16);
                 dst.put_u32(header.len);
