@@ -1,3 +1,4 @@
 [workspace]
-members = [ "ioc", "pyreccaster","reccaster", "wire"]
+members = [ "examples/*", "pyreccaster","reccaster", "wire"]
+default-members = ["pyreccaster", "reccaster", "wire"]
 resolver = "2"
