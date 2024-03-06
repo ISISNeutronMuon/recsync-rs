@@ -93,14 +93,14 @@ impl Reccaster {
             if let Some(framed) = &mut self.framed {
                 // @TODO upload data using add record
                 println!("Sending AddRecord Message 📧");
-                let atype_add_record = 1;
+                let atype_add_record = 0;
                 let record_name = "DEV:JEM";
-                let record_type = "PERSON";
-                let msg = Message::AddRecord(wire::AddRecord { recid: 0 as u32, atype: atype_add_record, rtlen: record_type.len() as u8, rnlen: record_name.len() as u16, 
+                let record_type = "ai";
+                let msg = Message::AddRecord(wire::AddRecord { recid: 1 as u32, atype: atype_add_record, rtlen: record_type.len() as u8, rnlen: record_name.len() as u16, 
                     rtype: record_type.to_string(), rname: record_name.to_string() });
-                framed.send(msg.clone()).await.unwrap();
+                framed.send(msg.clone()).await;
                 println!("Sending AddRecord Message 📧.\n{:?}", msg);
-                framed.send(Message::UploadDone(wire::UploadDone)).await.unwrap();
+                framed.send(Message::UploadDone(wire::UploadDone)).await;
                 println!("Sending UploadDone Message 🆗");
                 self.state = CasterState::PingPong;
             }
