@@ -7,6 +7,14 @@ See the [recsync](https://github.com/ChannelFinder/recsync) original repository 
 The project initially would implement only **ReCaster** in Rust with Python binding to be used along with [p4p](https://github.com/mdavidsaver/p4p). 
 **RecCeiver** is not implemented yet.
 
+### RecCeiver functionality
+
+[X] Announcement Message
+[X] Ping
+[X] Add Record
+[ ] Delete Record
+[X] Add Info
+
 ## Usage Example 
 
 Using Rust
