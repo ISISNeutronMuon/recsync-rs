@@ -121,21 +121,6 @@ impl From<u16> for MessageID {
     }
 }
 
-impl Message {
-    fn id(&self) -> MessageID {
-        match self {
-            Message::ServerGreet(_) => MessageID::ServerGreet,
-            Message::Ping(_) => MessageID::Ping,
-            Message::ClientGreet(_) => MessageID::ClientGreet,
-            Message::Pong(_) => MessageID::Pong,
-            Message::AddRecord(_) => MessageID::AddRecord,
-            Message::DelRecord(_) => MessageID::DelRecord,
-            Message::UploadDone(_) => MessageID::UploadDone,
-            Message::AddInfo(_) => MessageID::AddInfo,
-        }
-    }
-}
-
 impl MessageHeader {
     pub fn new(msg_id: u16, len: u32) -> MessageHeader {
         MessageHeader { id: MSG_MAGIC_ID, msg_id, len }
