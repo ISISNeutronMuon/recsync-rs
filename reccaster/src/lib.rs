@@ -1,7 +1,10 @@
+pub mod record;
+pub use self::record::Record;
+
 use std::{io, net::{IpAddr, Ipv4Addr, SocketAddr}};
 use tokio::{net::{UdpSocket, TcpStream}, io::Interest}; 
 use tokio_util::codec::Framed;
-use wire::{Announcement, MSG_ID, MessageCodec, Message};
+use wire::{Announcement, Message, MessageCodec, MSG_MAGIC_ID};
 use tokio_stream::StreamExt;
 use futures::SinkExt;
 
@@ -9,7 +12,7 @@ pub struct Reccaster {
     udpsock: UdpSocket,
     framed: Option<Framed<TcpStream, MessageCodec>>,
     buf: [u8; 1024],
-    pvs: Vec<String>,
+    pvs: Vec<Record>,
     state: CasterState,
 }
 
@@ -20,11 +23,14 @@ enum CasterState {
     PingPong,
 }
 
+const ATYPE_ADD_RECORD: u8 = 0;
+const _ATYPE_ADD_ALIAS: u8 = 1;
+
 impl Reccaster {
-    pub async fn new() -> Reccaster{
+
+    pub async fn new(records: Vec<Record>) -> Reccaster {
         let sock = UdpSocket::bind(format!("0.0.0.0:{}", wire::SERVER_ANNOUNCEMENT_UDP_PORT)).await.unwrap();
-        let pvs: Vec<String> = vec!["DEV:JEM".to_string()];
-        Self { udpsock: sock, framed: None, buf: [0; 1024], pvs, state: CasterState::Announcement } 
+        Self { udpsock: sock, framed: None, buf: [0; 1024], pvs: records, state: CasterState::Announcement } 
     }
 
     pub async fn run(&mut self) {
@@ -62,7 +68,7 @@ impl Reccaster {
             let addr = msg.server_addr;
             let port = msg.server_port;
             let key = msg.server_key;
-            let stream = TcpStream::connect(format!("{}:{}", addr, port)).await.unwrap();
+            let stream = TcpStream::connect(format!("{}:{}", addr, port)).await.map_err(|err| println!("{:?}",err)).unwrap();
             let codec = MessageCodec;
             let framed = Framed::new(stream, codec);
             self.framed = Some(framed);
@@ -72,7 +78,7 @@ impl Reccaster {
                     match msg.unwrap() {
                         Message::ServerGreet(_) => {
                             println!("Server is Greeting 👋");
-                            framed.send(Message::ClientGreet(wire::ClientGreet { serv_key: key })).await;
+                            let _ = framed.send(Message::ClientGreet(wire::ClientGreet { serv_key: key })).await;
 
                             self.state = CasterState::Upload;
                             return;
@@ -91,16 +97,24 @@ impl Reccaster {
         println!("UPLOAD_STATE");
         if let CasterState::Upload = &mut self.state {
             if let Some(framed) = &mut self.framed {
-                // @TODO upload data using add record
-                println!("Sending AddRecord Message 📧");
-                let atype_add_record = 0;
-                let record_name = "DEV:JEM";
-                let record_type = "ai";
-                let msg = Message::AddRecord(wire::AddRecord { recid: 1 as u32, atype: atype_add_record, rtlen: record_type.len() as u8, rnlen: record_name.len() as u16, 
-                    rtype: record_type.to_string(), rname: record_name.to_string() });
-                framed.send(msg.clone()).await;
-                println!("Sending AddRecord Message 📧.\n{:?}", msg);
-                framed.send(Message::UploadDone(wire::UploadDone)).await;
+                // @TODO Add Record alias
+                for (i, record) in self.pvs.iter().enumerate() {
+                    let recid: u32 = i as u32 + 100; 
+                    // AddRecord Message
+                    let record_name = &record.name;
+                    let record_type = &record.r#type;
+                    let msg = Message::AddRecord(wire::AddRecord { recid: recid, atype: ATYPE_ADD_RECORD, rtlen: record_type.len() as u8, rnlen: record_name.len() as u16, 
+                        rtype: record_type.to_string(), rname: record_name.to_string() });
+                    let _ = framed.send(msg.clone()).await;
+                    println!("Sending AddRecord Message 📧.\n{:?}", msg);
+                    // AddInfo Message
+                    for (key, value) in &record.properties {
+                        let msg = Message::AddInfo(wire::AddInfo { recid: recid, keylen: key.len() as u8, valen: value.len() as u16, key: key.to_string(), value: value.to_string() });
+                        let _ = framed.send(msg.clone()).await;
+                        println!("Sending AddInfo Message 📧.\n{:?}", msg);
+                    }
+                }
+                let _ = framed.send(Message::UploadDone(wire::UploadDone)).await;
                 println!("Sending UploadDone Message 🆗");
                 self.state = CasterState::PingPong;
             }
@@ -143,7 +157,7 @@ impl Reccaster {
     fn parse_announcement_message(data: &[u8], src_addr: SocketAddr) -> Result<Announcement, &'static str> {
         let id = u16::from_be_bytes([data[0], data[1]]);
         // Checking if the ID is 'RC'
-        if id != MSG_ID {             
+        if id != MSG_MAGIC_ID {             
             return Err("Invalid ID");
         }
 
@@ -159,7 +173,7 @@ impl Reccaster {
             server_addr_bytes[1],
             server_addr_bytes[2],
             server_addr_bytes[3],
-            );
+        );
 
         if server_addr.is_broadcast() {
             match src_addr.ip() {
