@@ -1,12 +1,12 @@
 use bytes::{Buf, BufMut, BytesMut};
-use std::{io, mem::{size_of, size_of_val}, net::Ipv4Addr};
+use std::{io, mem::size_of, net::Ipv4Addr};
 use tokio_util::codec::{Decoder, Encoder};
 
 /// UDP broadcast port
 pub const SERVER_ANNOUNCEMENT_UDP_PORT: u16 = 5049;
 
-/// Message ID Magic number (ascii 'RC')
-pub const MSG_ID: u16 = 0x5243;
+/// Message ID Magic number (ascii "RC")
+pub const MSG_MAGIC_ID: u16 = 0x5243;
 
 /// UDP Announcement message strcut
 #[derive(Debug)]
@@ -136,6 +136,21 @@ impl Message {
     }
 }
 
+impl MessageHeader {
+    pub fn new(msg_id: u16, len: u32) -> MessageHeader {
+        MessageHeader { id: MSG_MAGIC_ID, msg_id, len }
+    }
+
+    /// return Header as BytesMut
+    pub fn as_bytes(&self) -> BytesMut {
+        let mut buf = BytesMut::with_capacity(size_of::<MessageHeader>());
+        buf.put_u16(self.id);
+        buf.put_u16(self.msg_id);
+        buf.put_u32(self.len);
+        buf
+    }
+}
+
 /// Encoders and Decoders for Messages
 pub struct MessageCodec;
 
@@ -143,38 +158,23 @@ impl Encoder<Message> for MessageCodec {
     type Error = io::Error;
 
     fn encode(&mut self, msg: Message, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        let mut header = MessageHeader { id: MSG_ID, msg_id: msg.id() as u16, len: 0};
         match msg {
-            Message::ServerGreet(_) => {
-                header.len = size_of::<u8>() as u32; 
-                dst.put_u16(MSG_ID);
-                dst.put_u16(MessageID::ServerGreet as u16);
-                dst.put_u32(header.len); // Length is 1 for Server Greet
-                dst.put_u8(0); // Placeholder
-                Ok(())
-            },
             Message::ClientGreet(msg) => {
-                header.len = (size_of::<u32>() + size_of::<ClientGreet>())as u32;
-                dst.put_u16(MSG_ID);
-                dst.put_u16(MessageID::ClientGreet as u16);
-                dst.put_u32(header.len);
-                dst.put_u32(0); // Placeholder
+                let header = MessageHeader::new(MessageID::ClientGreet as u16, (size_of::<u32>() + size_of::<ClientGreet>())as u32);
+                dst.put(header.as_bytes());
+                dst.put_u32(0); // Padding
                 dst.put_u32(msg.serv_key);
                 Ok(())
             },
             Message::Pong(msg) => {
-                header.len = size_of::<Pong>() as u32;
-                dst.put_u16(MSG_ID);
-                dst.put_u16(MessageID::Pong as u16);
-                dst.put_u32(header.len);
+                let header = MessageHeader::new(MessageID::Pong as u16, size_of::<Pong>() as u32);
+                dst.put(header.as_bytes());
                 dst.put_u32(msg.nonce);
                 Ok(())
             },
             Message::AddRecord(msg) => {
-                header.len = (size_of::<AddRecord>() as u32) + (msg.rtlen as u32 + msg.rnlen as u32);
-                dst.put_u16(MSG_ID);
-                dst.put_u16(MessageID::AddRecord as u16);
-                dst.put_u32(header.len);
+                let header = MessageHeader::new(MessageID::AddRecord as u16, (size_of::<AddRecord>() as u32) + (msg.rtlen as u32 + msg.rnlen as u32));
+                dst.put(header.as_bytes());
                 dst.put_u32(msg.recid);
                 dst.put_u8(msg.atype);
                 dst.put_u8(msg.rtlen);
@@ -185,17 +185,25 @@ impl Encoder<Message> for MessageCodec {
             },
             Message::DelRecord(_) => todo!(),
             Message::AddInfo(msg) => {
+                let header = MessageHeader::new(MessageID::AddInfo as u16,
+                    (size_of::<u32>() + size_of::<u8>() + size_of::<u8>() + size_of::<u16>()) as u32 + (msg.keylen as u32 + msg.valen as u32) );
+                println!("Header size {:?}", header.len);
+                dst.put(header.as_bytes());
+                dst.put_u32(msg.recid);
+                dst.put_u8(msg.keylen);
+                dst.put_u16(msg.valen);
+                dst.put(msg.key.as_bytes());
+                dst.put(msg.value.as_bytes());
                 Ok(())
             },
             Message::UploadDone(_) => {
-                header.len = size_of::<u32>() as u32;
-                dst.put_u16(MSG_ID);
-                dst.put_u16(MessageID::UploadDone as u16);
-                dst.put_u32(header.len);
+                let header = MessageHeader::new(MessageID::UploadDone as u16, size_of::<u32>() as u32);
+                dst.put(header.as_bytes());
                 dst.put_u32(0);
                 Ok(())
             },
             Message::Ping(_) => unimplemented!("Recceiver related messages are not implemented yet."),
+            Message::ServerGreet(_) => unimplemented!("Recceiver related messages are not implemented yet.")
         }
     }
 }
@@ -216,7 +224,7 @@ impl Decoder for MessageCodec {
         let len = src.get_u32() as usize;
         
         // Checking if the ID is 'RC'
-        if id != MSG_ID {
+        if id != MSG_MAGIC_ID {
             return Ok(None);
         }
 
