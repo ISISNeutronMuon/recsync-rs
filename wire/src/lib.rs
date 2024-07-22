@@ -121,6 +121,21 @@ impl From<u16> for MessageID {
     }
 }
 
+impl From<MessageID> for u16 {
+    fn from(msg_id: MessageID) -> u16 {
+        match msg_id {
+            MessageID::ServerGreet => 0x8001,
+            MessageID::ClientGreet => 0x0001,
+            MessageID::Ping => 0x8002,
+            MessageID::Pong => 0x0002,
+            MessageID::AddRecord => 0x0003,
+            MessageID::DelRecord => 0x0004,
+            MessageID::UploadDone => 0x0005,
+            MessageID::AddInfo => 0x0006,
+        }
+    }
+}
+
 impl MessageHeader {
     pub fn new(msg_id: u16, len: u32) -> MessageHeader {
         MessageHeader { id: MSG_MAGIC_ID, msg_id, len }
@@ -132,6 +147,7 @@ impl MessageHeader {
         buf.put_u16(self.id);
         buf.put_u16(self.msg_id);
         buf.put_u32(self.len);
+        println!("Header size: {:?}, ID: {:x}, MSG_ID #{:x}, Len {}", buf.len(), self.id, self.msg_id, self.len);
         buf
     }
 }
@@ -145,7 +161,7 @@ impl Encoder<Message> for MessageCodec {
     fn encode(&mut self, msg: Message, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match msg {
             Message::ClientGreet(msg) => {
-                let header = MessageHeader::new(MessageID::ClientGreet as u16, (size_of::<u32>() + size_of::<ClientGreet>())as u32);
+                let header = MessageHeader::new(MessageID::ClientGreet.into(), (size_of::<u32>() + size_of::<ClientGreet>())as u32);
                 dst.put(header.as_bytes());
                 dst.put_u32(0); // Padding
                 dst.put_u32(msg.serv_key);
@@ -158,7 +174,8 @@ impl Encoder<Message> for MessageCodec {
                 Ok(())
             },
             Message::AddRecord(msg) => {
-                let header = MessageHeader::new(MessageID::AddRecord as u16, (size_of::<AddRecord>() as u32) + (msg.rtlen as u32 + msg.rnlen as u32));
+                let header = MessageHeader::new(MessageID::AddRecord.into(), 
+                (size_of::<u32>() as u32) + (msg.rtlen as u32 + msg.rnlen as u32));
                 dst.put(header.as_bytes());
                 dst.put_u32(msg.recid);
                 dst.put_u8(msg.atype);
@@ -166,14 +183,16 @@ impl Encoder<Message> for MessageCodec {
                 dst.put_u16(msg.rnlen);
                 dst.put(msg.rtype.as_bytes());
                 dst.put(msg.rname.as_bytes());
+                println!("!! AddRecord buffer size {}", dst.len());
                 Ok(())
             },
             Message::DelRecord(_) => todo!(),
             Message::AddInfo(msg) => {
-                let header = MessageHeader::new(MessageID::AddInfo as u16,
+                let header = MessageHeader::new(MessageID::AddInfo.into(),
                     (size_of::<u32>() + size_of::<u8>() + size_of::<u8>() + size_of::<u16>()) as u32 + (msg.keylen as u32 + msg.valen as u32) );
-                println!("Header size {:?}", header.len);
-                dst.put(header.as_bytes());
+                dst.put_u16(header.id);
+                dst.put_u16(header.msg_id);
+                dst.put_u32(header.len);
                 dst.put_u32(msg.recid);
                 dst.put_u8(msg.keylen);
                 dst.put_u16(msg.valen);
@@ -182,7 +201,7 @@ impl Encoder<Message> for MessageCodec {
                 Ok(())
             },
             Message::UploadDone(_) => {
-                let header = MessageHeader::new(MessageID::UploadDone as u16, size_of::<u32>() as u32);
+                let header = MessageHeader::new(MessageID::UploadDone.into(), size_of::<u32>() as u32);
                 dst.put(header.as_bytes());
                 dst.put_u32(0);
                 Ok(())
