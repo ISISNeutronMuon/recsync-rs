@@ -81,3 +81,17 @@ maturin build
 # to install the python bindings
 pip install . 
 ```
+
+### Cross-Compile Python bindings for Windows
+
+Ensure that [Maturin](https://github.com/PyO3/maturin) is installed.
+
+Add rust windows target
+```bash
+rustup 
+```
+
+Install `mingw-w64` for windowws cross-compilation
+```bash
+apt install mingw-w64
+```
