@@ -174,30 +174,31 @@ impl Encoder<Message> for MessageCodec {
                 Ok(())
             },
             Message::AddRecord(msg) => {
-                let header = MessageHeader::new(MessageID::AddRecord.into(), 
-                (size_of::<u32>() as u32) + (msg.rtlen as u32 + msg.rnlen as u32));
-                dst.put(header.as_bytes());
+                let len = (size_of::<u32>() + size_of::<u8>() + size_of::<u8>() + size_of::<u16>() + msg.rtype.len() + msg.rname.len()) as u32;
+                let header = MessageHeader::new(MessageID::AddRecord.into(), len);
+                dst.put_u16(header.id);
+                dst.put_u16(header.msg_id);
+                dst.put_u32(header.len);
                 dst.put_u32(msg.recid);
                 dst.put_u8(msg.atype);
                 dst.put_u8(msg.rtlen);
                 dst.put_u16(msg.rnlen);
-                dst.put(msg.rtype.as_bytes());
-                dst.put(msg.rname.as_bytes());
-                println!("!! AddRecord buffer size {}", dst.len());
+                dst.put_slice(msg.rtype.as_bytes());
+                dst.put_slice(msg.rname.as_bytes());
                 Ok(())
             },
             Message::DelRecord(_) => todo!(),
             Message::AddInfo(msg) => {
-                let header = MessageHeader::new(MessageID::AddInfo.into(),
-                    (size_of::<u32>() + size_of::<u8>() + size_of::<u8>() + size_of::<u16>()) as u32 + (msg.keylen as u32 + msg.valen as u32) );
+                let len = (size_of::<u32>() + size_of::<u8>() + size_of::<u16>() + msg.key.len() + msg.value.len()) as u32;
+                let header = MessageHeader::new(MessageID::AddInfo.into(), len);
                 dst.put_u16(header.id);
                 dst.put_u16(header.msg_id);
                 dst.put_u32(header.len);
                 dst.put_u32(msg.recid);
                 dst.put_u8(msg.keylen);
                 dst.put_u16(msg.valen);
-                dst.put(msg.key.as_bytes());
-                dst.put(msg.value.as_bytes());
+                dst.put_slice(msg.key.as_bytes());
+                dst.put_slice(msg.value.as_bytes());
                 Ok(())
             },
             Message::UploadDone(_) => {
