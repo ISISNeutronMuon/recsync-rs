@@ -17,5 +17,7 @@ tests = [
 dynamic = ["version"]
 
 [tool.maturin]
+profile = "release"
 python-source = "python"
+compatibility = "linux"
 features = ["pyo3/extension-module"]
