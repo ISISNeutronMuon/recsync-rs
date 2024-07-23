@@ -8,6 +8,11 @@ pub const SERVER_ANNOUNCEMENT_UDP_PORT: u16 = 5049;
 /// Message ID Magic number (ascii "RC")
 pub const MSG_MAGIC_ID: u16 = 0x5243;
 
+/// 
+pub const ATYPE_ADD_RECORD: u8 = 0;
+/// 
+pub const ATYPE_ADD_ALIAS: u8 = 1;
+
 /// UDP Announcement message strcut
 #[derive(Debug)]
 pub struct Announcement {
@@ -189,13 +194,14 @@ impl Encoder<Message> for MessageCodec {
             },
             Message::DelRecord(_) => todo!(),
             Message::AddInfo(msg) => {
-                let len = (size_of::<u32>() + size_of::<u8>() + size_of::<u16>() + msg.key.len() + msg.value.len()) as u32;
+                let len = (size_of::<u32>() + size_of::<u8>() + size_of::<u8>() + size_of::<u16>() + msg.key.len() + msg.value.len()) as u32;
                 let header = MessageHeader::new(MessageID::AddInfo.into(), len);
                 dst.put_u16(header.id);
                 dst.put_u16(header.msg_id);
                 dst.put_u32(header.len);
                 dst.put_u32(msg.recid);
                 dst.put_u8(msg.keylen);
+                dst.put_u8(0); // Padding
                 dst.put_u16(msg.valen);
                 dst.put_slice(msg.key.as_bytes());
                 dst.put_slice(msg.value.as_bytes());
