@@ -11,5 +11,5 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "^0.20", features = ["extension-module", "generate-import-lib"] }
 pyo3-asyncio = { version = "^0.20", features = ["attributes", "tokio-runtime"] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "^1", features = ["full"] }
 reccaster = { path = "../reccaster" }

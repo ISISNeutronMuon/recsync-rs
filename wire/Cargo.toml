@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 byteorder = "1"
 bytes = "1"
-tokio = { version = "1", features = ["full"] }
-tokio-util = { version = "*", features = ["codec"] }
+tokio = { version = "^1", features = ["full"] }
+tokio-util = { version = "0.7.11", features = ["codec"] }
