@@ -15,8 +15,8 @@ async def main():
         op.done()
 
     records = [
-        PyRecord(name="DEV:P4P:TEST", type="ai", alias=None, properties={"recordDesc": "Test ai record"}),
-        PyRecord(name="DEV:P4P:VAL", type="longin", alias=None, properties={"recordDesc": "Test longin record"}),
+        PyRecord(name="DEV:P4P:TEST", type="ai", alias="DEV:P4P:ISIS:TEST", properties={"recordDesc": "Test ai record", "p4pVersion": "24.1.2"}),
+        PyRecord(name="DEV:P4P:VAL", type="longin", alias=None, properties={"recordDesc": "Test longin record", "p4pVersion": "24.1.2"}),
     ]
 
     with Server(providers=[{"DEV:P4P:VAL": pv}]):
