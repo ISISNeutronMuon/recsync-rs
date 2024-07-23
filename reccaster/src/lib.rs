@@ -24,7 +24,7 @@ enum CasterState {
 }
 
 const ATYPE_ADD_RECORD: u8 = 0;
-const _ATYPE_ADD_ALIAS: u8 = 1;
+const ATYPE_ADD_ALIAS: u8 = 1;
 
 impl Reccaster {
 
@@ -68,6 +68,7 @@ impl Reccaster {
             let addr = msg.server_addr;
             let port = msg.server_port;
             let key = msg.server_key;
+            // @TODO handle connection errors 
             let stream = TcpStream::connect(format!("{}:{}", addr, port)).await.map_err(|err| println!("{:?}",err)).unwrap();
             let codec = MessageCodec;
             let framed = Framed::new(stream, codec);
@@ -97,7 +98,6 @@ impl Reccaster {
         println!("UPLOAD_STATE");
         if let CasterState::Upload = &mut self.state {
             if let Some(framed) = &mut self.framed {
-                // @TODO Add Record alias
                 for (i, record) in self.pvs.iter().enumerate() {
                     let recid: u32 = i as u32 + 100; 
                     // AddRecord Message
@@ -107,11 +107,17 @@ impl Reccaster {
                         rtype: record_type.to_string(), rname: record_name.to_string() });
                     let _ = framed.send(msg.clone()).await;
                     println!("Sending AddRecord Message 📧.\n{:?}", msg);
+                    // AddRecord alias Message if avaliable
+                    if let Some(record_alias) = &record.alias {
+                        let msg = Message::AddRecord(wire::AddRecord { recid: recid, atype: ATYPE_ADD_ALIAS, rtlen: record_type.len() as u8, rnlen: record_alias.len() as u16, 
+                            rtype: record_type.to_string(), rname: record_alias.to_string() });
+                        let _ = framed.send(msg.clone()).await;
+                    };
                     // AddInfo Message
                     for (key, value) in &record.properties {
                         let msg = Message::AddInfo(wire::AddInfo { recid: recid, keylen: key.len() as u8, valen: value.len() as u16, key: key.to_string(), value: value.to_string() });
                         let _ = framed.send(msg.clone()).await;
-                        println!("Sending AddInfo Message 📧.\n{:?}", msg);
+                        println!("Sending AddInfo Message 📧.\n{:?}", msg.clone());
                     }
                 }
                 let _ = framed.send(Message::UploadDone(wire::UploadDone)).await;
