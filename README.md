@@ -5,7 +5,9 @@ See the [recsync](https://github.com/ChannelFinder/recsync) original repository 
 
 ## Project status 
 The project initially would implement only **ReCaster** in Rust with Python binding to be used along with [p4p](https://github.com/mdavidsaver/p4p). 
-**RecCeiver** is not implemented yet.
+**RecCeiver** is not implemented yet. Recsync-rs is split into different sections. First part is `wire` which implements only the protocol definition, encoders and decoders. 
+It used by **ReCaster** and **RecCeiver** (not implemented yet). Second part is `reccaster` which is **ReCaster** implementation, as it will be used as rust library. 
+Finally, `pyreccaster` is a [pyo3](https://github.com/PyO3/pyo3) Rust-wrapped Python library of `reccaster`.
 
 ### RecCeiver functionality
 
@@ -18,25 +20,29 @@ The project initially would implement only **ReCaster** in Rust with Python bind
 ## Usage Example 
 
 Using Rust
-
 ```rust
-use reccaster::Reccaster;
+use reccaster::{record::Record, Reccaster};
 
 #[tokio::main]
 async fn main() {
-    let mut caster = Reccaster::new().await;
+
+    let mut record = Record::new("DEV:RECASTER:RUST".to_string(), "ai".to_string());
+    record.properties.insert("recordDesc".to_string(), "Rust Recaster".to_string());
+    let records: Vec<Record> = vec![record];
+
+    let mut caster = Reccaster::new(records).await;
     caster.run().await;
 }
-
 ```
 
 Using Python bindings
 ```python
 import asyncio
-from pyreccaster import PyReccaster
+from pyreccaster import PyReccaster, PyRecord
 from p4p.nt import NTScalar
 from p4p.server.asyncio import SharedPV
 from p4p.server import Server
+
 
 async def main():
     pv = SharedPV(nt=NTScalar('d'), initial=0.0)
@@ -47,9 +53,14 @@ async def main():
         print(f"{op.value()}")
         op.done()
 
+    records = [
+        PyRecord(name="DEV:P4P:VAL", type="ai", alias="DEV:P4P:TEST", properties={"recordDesc": "P4P Recaster"}),
+    ]
+
     with Server(providers=[{"DEV:P4P:VAL": pv}]):
-        py_reccaster = await PyReccaster.setup()
+        py_reccaster = await PyReccaster.setup(records)
         await py_reccaster.run()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -88,10 +99,15 @@ Ensure that [Maturin](https://github.com/PyO3/maturin) is installed.
 
 Add rust windows target
 ```bash
-rustup 
+rustup target add x86_64-pc-windows-gnu 
 ```
 
 Install `mingw-w64` for windowws cross-compilation
 ```bash
 apt install mingw-w64
+```
+
+Build for specific target and python version
+```bash
+maturin build --release --target x86_64-pc-windows-gnu --interpreter python3.9
 ```
