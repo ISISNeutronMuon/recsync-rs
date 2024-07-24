@@ -8,10 +8,11 @@ pub const SERVER_ANNOUNCEMENT_UDP_PORT: u16 = 5049;
 /// Message ID Magic number (ascii "RC")
 pub const MSG_MAGIC_ID: u16 = 0x5243;
 
-/// 
-pub const ATYPE_ADD_RECORD: u8 = 0;
-/// 
-pub const ATYPE_ADD_ALIAS: u8 = 1;
+/// AddRecrod message type 
+pub enum AddRecordType {
+    Record = 0,
+    Alias = 1,
+}
 
 /// UDP Announcement message strcut
 #[derive(Debug)]
@@ -152,7 +153,6 @@ impl MessageHeader {
         buf.put_u16(self.id);
         buf.put_u16(self.msg_id);
         buf.put_u32(self.len);
-        println!("Header size: {:?}, ID: {:x}, MSG_ID #{:x}, Len {}", buf.len(), self.id, self.msg_id, self.len);
         buf
     }
 }
