@@ -126,11 +126,12 @@ impl Reccaster {
     async fn handle_pingpong(&mut self) {
         if let CasterState::PingPong = &mut self.state {
             if let Some(framed) = &mut self.framed {
-                while let Some(msg_result) = dbg!(framed.next().await) {
+                while let Some(msg_result) = framed.next().await {
                     match msg_result {
                         Ok(msg) => {
                             match msg {
                                 Message::Ping(ping_msg) => {
+                                    info!("received ping with nonce: {}", ping_msg.nonce);
                                     if let Err(_) = framed.send(Message::Pong(wire::Pong { nonce: ping_msg.nonce })).await {
                                         self.state = CasterState::Announcement;
                                         return;
