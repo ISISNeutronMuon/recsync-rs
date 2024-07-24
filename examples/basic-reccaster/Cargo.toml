@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+tracing-subscriber = "^0.3.18"
 reccaster = { path = "../../reccaster"}
