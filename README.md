@@ -99,7 +99,7 @@ Ensure that [Maturin](https://github.com/PyO3/maturin) is installed.
 
 Add rust windows target
 ```bash
-rustup target add x86_64-pc-windows-gnu 
+rustup target add x86_64-pc-windows-gnu
 ```
 
 Install `mingw-w64` for windowws cross-compilation
@@ -110,4 +110,11 @@ apt install mingw-w64
 Build for specific target and python version
 ```bash
 maturin build --release --target x86_64-pc-windows-gnu --interpreter python3.9
+```
+
+### Cross-Compile Python bindings for Arm64
+
+Add arm taget
+```bash
+rustup target add aarch64-linux-gnu-gcc
 ```
