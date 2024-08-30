@@ -1,6 +1,6 @@
 # Recsync-rs
 
-A rust implementation of [recsync](https://github.com/ChannelFinder/recsync) with python bindings.Aiming for bug to bug compatibility.  
+A rust implementation of [recsync](https://github.com/ChannelFinder/recsync) protocl with python bindings.Aiming for bug to bug compatibility with current implementation of RecCeiver.  
 See the [recsync](https://github.com/ChannelFinder/recsync) original repository for details about the protocol and theory of operation.
 
 ## Project status 
@@ -9,13 +9,13 @@ The project initially would implement only **ReCaster** in Rust with Python bind
 It used by **ReCaster** and **RecCeiver** (not implemented yet). Second part is `reccaster` which is **ReCaster** implementation, as it will be used as rust library. 
 Finally, `pyreccaster` is a [pyo3](https://github.com/PyO3/pyo3) Rust-wrapped Python library of `reccaster`.
 
-### RecCeiver functionality
+### RecCaster functionality
 
-[X] Announcement Message
-[X] Ping
-[X] Add Record
-[ ] Delete Record
-[X] Add Info
+* [X] Announcement Message
+* [X] Ping
+* [X] Add Record
+* [X] Add Info
+* [ ] Delete Record
 
 ## Usage Example 
 
@@ -118,3 +118,10 @@ Add arm taget
 ```bash
 rustup target add aarch64-linux-gnu-gcc
 ```
+
+## License
+
+This project is licensed under both the MIT License and the BSD 3-Clause License.  Users, contributors, and distributors must comply with the terms of both licenses. See the `LICENSE` file for more details.
+
+## Acknowledgements
+Recsync-rs is a rust reimplementation of [recsync](https://github.com/ChannelFinder/recsync) protocol.

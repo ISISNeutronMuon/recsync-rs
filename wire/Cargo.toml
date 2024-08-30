@@ -2,6 +2,8 @@
 name = "wire"
 version = "0.1.0"
 edition = "2021"
+authors = ["Aqeel AlShafei <aqeel.alshafei@stfc.ac.uk>"]
+license = "MIT AND BSD-3-Clause"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
